@@ -1,0 +1,6 @@
+#define N_SERV_MEM 3
+#define SERVIDOR_REQ_N_THREADS 10
+
+#define TAM_MEM 1024 * 1024 // 1 MB
+#define N_CHUNKS 64
+#define SERVIDOR_MEM_N_THREADS 30
