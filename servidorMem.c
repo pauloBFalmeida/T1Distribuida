@@ -9,14 +9,14 @@
 #include "servidor.h"
 #include <string.h>
 
-// TAM_MEM
-char memoria[] = "123456789";
+char memoria[TAM_MEM];
 
-pthread_mutex_t mutexes[N_CHUNKS];
+pthread_mutex_t mutexes[N_CHUNKS+1];
 
 int init() {
-
-    for (int i=0; i<N_CHUNKS; i++)
+    for (int i=0; i<TAM_MEM; i++)
+        memoria[i] = 65 + i;
+    for (int i=0; i<N_CHUNKS+1; i++)
         pthread_mutex_init(&mutexes[i], NULL);
 
 //     pthread_t threads[N_THREADS];
@@ -57,14 +57,17 @@ void *atenderCliente(void *arg) {
     for (int i=mutexInit; i<=mutexFinal; i++) {
         int tam = min((i+1)*(TAM_MEM / N_CHUNKS),       // inicio do prox chunk
                         req.posicao + req.tam_buffer);  // posicao final do buffer na memoria
-        int ini = min(i * (TAM_MEM / N_CHUNKS),         // inicio do chunk
+        int ini = max(i * (TAM_MEM / N_CHUNKS),         // inicio do chunk
                         req.posicao);                   // posicao inicial do buffer na memoria
+        printf("tam: %d ini: %d mut: %d\n", tam, ini, i);
         pthread_mutex_lock(&mutexes[i]);
         printf("dentro do mutex\n");
         for (int j=ini; j<tam; j++) {
             memoria[j] = buffer[cont];
+            printf("%c", buffer[cont]);
             cont++;
         }
+        printf("\n");
         pthread_mutex_unlock(&mutexes[i]);
     }
 

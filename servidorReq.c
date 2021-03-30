@@ -64,10 +64,13 @@ void *atenderCliente(void *arg) {
         write(socketsServidoresMem[i], &req_i, sizeof(Requisicao));
         printf("esc: %s, pos: %d, tam: %d \n", &req_i.escrever, req_i.posicao, req_i.tam_buffer);
         if (req.escrever == 1) {
-            char sendBuff[req_i.tam_buffer+1];
+            char sendBuff[req_i.tam_buffer];
             strncpy(sendBuff, &buffer[posBuffer], req_i.tam_buffer);
             write(socketsServidoresMem[i], &sendBuff, (req_i.tam_buffer * sizeof(char)));
-            printf("buffer: %s \n", sendBuff);
+            printf("bufferc '");
+            for (int i=0; i<req_i.tam_buffer; i++)
+                printf("%c", sendBuff[i]);
+            printf("'\n");
             posBuffer += req_i.tam_buffer;
         }
     }
