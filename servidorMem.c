@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "servidor.h"
+#include <string.h>
 
 // TAM_MEM
 char memoria[] = "123456789";
@@ -44,6 +45,9 @@ void *atenderCliente(void *arg) {
         printf("2 read recebido\n");
     }
 
+    printf("esc: %s, pos: %d, tam: %d \n", &req.escrever, req.posicao, req.tam_buffer);
+    printf("buffer: %s\n", buffer);
+
     int mutexInit = req.posicao / N_CHUNKS;
     int mutexFinal = (req.posicao + req.tam_buffer) / N_CHUNKS;
 
@@ -64,7 +68,10 @@ void *atenderCliente(void *arg) {
         pthread_mutex_unlock(&mutexes[i]);
     }
 
-    printf("mem: %s\n", memoria);
+    printf("mem: ");
+    for (int i=0; i<TAM_MEM; i++)
+        printf("%c", memoria[i]);
+    printf("\n");
 
     // write(client_sockfd, &resposta, sizeof(int));
     close(client_sockfd);

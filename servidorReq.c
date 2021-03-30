@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "servidor.h"
+#include <string.h>
 
 
 int socketsServidoresMem[N_SERV_MEM];
@@ -21,7 +22,7 @@ void init() {
         address.sin_family = AF_INET;
         address.sin_addr.s_addr = inet_addr("127.0.0.1");
         scanf("%hd", &address.sin_port);
-        socketsServidoresMem[i] = address.sin_port;
+        socketsServidoresMem[i] = sockfd;
         len = sizeof(address);
 
         result = connect(sockfd, (struct sockaddr *)&address, len);
@@ -43,6 +44,9 @@ void *atenderCliente(void *arg) {
     char buffer[req.tam_buffer];
     if (req.escrever == 1) {
         read(client_sockfd, &buffer, (req.tam_buffer * sizeof(char)));
+        for (int i=0; i<req.tam_buffer; i++)
+            printf("%c", buffer[i]);
+        printf("\n");
     }
 
     int serverInit = req.posicao / TAM_MEM;
@@ -60,8 +64,10 @@ void *atenderCliente(void *arg) {
         write(socketsServidoresMem[i], &req_i, sizeof(Requisicao));
         printf("esc: %s, pos: %d, tam: %d \n", &req_i.escrever, req_i.posicao, req_i.tam_buffer);
         if (req.escrever == 1) {
-            write(socketsServidoresMem[i], &buffer[posBuffer], (req_i.tam_buffer * sizeof(char)));
-            printf("buffer: %s \n", &buffer[posBuffer]);
+            char sendBuff[req_i.tam_buffer+1];
+            strncpy(sendBuff, &buffer[posBuffer], req_i.tam_buffer);
+            write(socketsServidoresMem[i], &sendBuff, (req_i.tam_buffer * sizeof(char)));
+            printf("buffer: %s \n", sendBuff);
             posBuffer += req_i.tam_buffer;
         }
     }
