@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include "servidor.h"
 
 int main() {
     int sockfd;
@@ -24,14 +25,20 @@ int main() {
         exit(1);
     }
 
-    int resposta, entrada;
+    Requisicao req;
+    req.escrever = 1;
+    req.posicao = 8;
+    req.tam_buffer = 20;
+    char buffer[] = "Ola Mundo Ola Mundo";
 
-    // while(1) {
-        scanf("%d", &entrada);
-        write(sockfd, &entrada, sizeof(int));
-        read(sockfd, &resposta, sizeof(int));
-        printf("%d\n", resposta);
-    // }
+    write(sockfd, &req, sizeof(Requisicao));
+    write(sockfd, &buffer, sizeof(char) * req.tam_buffer);
+    // int resposta, entrada;
+    //
+    // scanf("%d", &entrada);
+    // write(sockfd, &entrada, sizeof(int));
+    // read(sockfd, &resposta, sizeof(int));
+    // printf("%d\n", resposta);
 
     close(sockfd);
     exit(0);
