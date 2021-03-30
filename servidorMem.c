@@ -14,8 +14,8 @@ char memoria[TAM_MEM];
 pthread_mutex_t mutexes[N_CHUNKS+1];
 
 int init() {
-    for (int i=0; i<TAM_MEM; i++)
-        memoria[i] = 65 + i;
+    for (int i=0; i<TAM_MEM; i++)   // loop nos caracteres de A-Z
+        memoria[i] = 65 + (i % 25);
     for (int i=0; i<N_CHUNKS+1; i++)
         pthread_mutex_init(&mutexes[i], NULL);
 
