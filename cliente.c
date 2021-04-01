@@ -26,13 +26,20 @@ int main() {
     }
 
     Requisicao req;
-    req.escrever = 1;
+    req.escrever =  0;
     req.posicao = 8;
     req.tam_buffer = 20;
-    char buffer[] = "Ola Mundo Ola Mundo";
+    // char buffer[] = "Ola Mundo Ola Mundo";
+    char buffer[20];
 
     write(sockfd, &req, sizeof(Requisicao));
-    write(sockfd, &buffer, sizeof(char) * req.tam_buffer);
+    // write(sockfd, &buffer, sizeof(char) * req.tam_buffer);
+
+
+    read(sockfd, buffer, req.tam_buffer * sizeof(char));
+    printf("%s\0\n", buffer);
+    printf("\n");
+
     // int resposta, entrada;
     //
     // scanf("%d", &entrada);

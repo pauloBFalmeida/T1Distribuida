@@ -8,33 +8,34 @@
 #include <pthread.h>
 #include "servidor.h"
 #include <string.h>
+#include <errno.h>
 
 
 int socketsServidoresMem[N_SERV_MEM];
+struct sockaddr_in addressServidoresMem[N_SERV_MEM];
 
 void init() {
     for (int i=0; i<N_SERV_MEM; i++) {
         int sockfd;
         int len;
-        struct sockaddr_in address;
         int result;
         sockfd = socket(AF_INET, SOCK_STREAM, 0);   // tcp
-        address.sin_family = AF_INET;
-        address.sin_addr.s_addr = inet_addr("127.0.0.1");
-        scanf("%hd", &address.sin_port);
+        addressServidoresMem[i].sin_family = AF_INET;
+        addressServidoresMem[i].sin_addr.s_addr = inet_addr("127.0.0.1");
+        scanf("%hd", &addressServidoresMem[i].sin_port);
         socketsServidoresMem[i] = sockfd;
-        len = sizeof(address);
 
-        result = connect(sockfd, (struct sockaddr *)&address, len);
-        if(result == -1) {
-            perror("error ao conectar ");
-            exit(1);
-        }
+        // result = connect(socketsServidoresMem[i], (struct sockaddr *)&sizeof(addressServidoresMem[i]), len);
+        // if(result == -1) {
+        //     perror("error ao conectar ");
+        //     exit(1);
+        // }
     }
 
 }
 
 void *atenderCliente(void *arg) {
+
     int client_sockfd = *(int *)arg;
 
     // escreve(posicao, &buffer, tamBuffer)
@@ -54,25 +55,62 @@ void *atenderCliente(void *arg) {
     int posBuffer = 0;
     printf("ServerInit: %d, serverFinal: %d \n", serverInit, serverFinal);
 
+    char resposta[req.tam_buffer];
+    int tam_buffer = req.tam_buffer;
+
     for (int i=serverInit; i<=serverFinal; i++) {
+        errno = 0;
+        int sockfd = socket(AF_INET, SOCK_STREAM, 0);   // tcp
+        int r2 = connect(sockfd, (struct sockaddr *)&addressServidoresMem[i], sizeof(addressServidoresMem[i]));
+        if (r2 < 0) {
+            printf("r2: %d erro %d \n", r2, errno);
+        }
+
         Requisicao req_i;
         req_i.escrever = req.escrever;
         req_i.posicao = max(req.posicao - i*TAM_MEM, 0);
         req_i.tam_buffer = min(min(TAM_MEM, TAM_MEM - req_i.posicao), req.tam_buffer);
         req.tam_buffer -= req_i.tam_buffer;
         // printf("tam_buffer: %d\n", req.tam_buffer);
-        write(socketsServidoresMem[i], &req_i, sizeof(Requisicao));
+        printf("Escrever no socket\n");
+        int r = write(sockfd, &req_i, sizeof(Requisicao));
+        if (r < 0) {
+            printf("r: %d erro %d \n", r, errno);
+        }
         printf("esc: %s, pos: %d, tam: %d \n", &req_i.escrever, req_i.posicao, req_i.tam_buffer);
         if (req.escrever == 1) {
             char sendBuff[req_i.tam_buffer];
             strncpy(sendBuff, &buffer[posBuffer], req_i.tam_buffer);
-            write(socketsServidoresMem[i], &sendBuff, (req_i.tam_buffer * sizeof(char)));
+            write(sockfd, &sendBuff, (req_i.tam_buffer * sizeof(char)));
             printf("bufferc '");
             for (int i=0; i<req_i.tam_buffer; i++)
                 printf("%c", sendBuff[i]);
             printf("'\n");
-            posBuffer += req_i.tam_buffer;
+        } else {
+            char recebido[tam_buffer];
+            read(sockfd, &recebido, (req_i.tam_buffer * sizeof(char)));
+            printf("recebido '");
+            for (int i=0; i<req_i.tam_buffer; i++)
+                printf("%c", recebido[i]);
+            printf("'\n");
+            strncpy(resposta + posBuffer, recebido, req_i.tam_buffer);
+            printf("resposta '");
+            for (int i=0; i<tam_buffer; i++)
+                printf("%c", resposta[i]);
+            printf("'\n");
         }
+        posBuffer += req_i.tam_buffer;
+
+        // close(socketsServidoresMem[i]);
+        close(sockfd);
+    }
+
+    if (req.escrever != 1) {
+        printf("resposta '");
+        for (int i=0; i<tam_buffer; i++)
+            printf("%c", resposta[i]);
+        printf("'\n");
+        write(client_sockfd, resposta, (tam_buffer * sizeof(char)) );
     }
 
     close(client_sockfd);
@@ -81,7 +119,7 @@ void *atenderCliente(void *arg) {
 int main() {
     init();
     int server_sockfd;
-    int client_sockfd;
+    // int client_sockfd;
     unsigned int server_len, client_len;
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
@@ -96,7 +134,7 @@ int main() {
     while(1) {
         printf("server waiting\n");
         client_len = sizeof(client_address);
-        client_sockfd = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
+        int client_sockfd = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
 
         pthread_t thread;
         pthread_create(&thread, NULL, atenderCliente, (void*)&client_sockfd);
