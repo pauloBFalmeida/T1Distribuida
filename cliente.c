@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "servidor.h"
+#include <string.h>
 
 int main() {
     int sockfd;
@@ -25,20 +26,52 @@ int main() {
         exit(1);
     }
 
-    Requisicao req;
-    req.escrever =  0;
-    req.posicao = 8;
-    req.tam_buffer = 20;
-    // char buffer[] = "Ola Mundo Ola Mundo";
-    char buffer[20];
+    while (1) {
+        Requisicao req;
+        int num;
+        printf("Voce quer escrever: (1/0) ");
+        scanf("%d", &num);
+        req.escrever = num;
+        printf("Posicao: ");
+        scanf("%d", &req.posicao);
+        char buffer[100];
+        if (req.escrever == 1) {
+            printf("Mensagem: ");
+            scanf("%s", buffer);
+            req.tam_buffer = strlen(buffer);
+        } else {
+            printf("Tamanho da leitura: ");
+            scanf("%d", &req.tam_buffer);
+        }
 
-    write(sockfd, &req, sizeof(Requisicao));
-    // write(sockfd, &buffer, sizeof(char) * req.tam_buffer);
+        write(sockfd, &req, sizeof(Requisicao));
 
+        if (req.escrever == 1) {
+            write(sockfd, &buffer, sizeof(req.tam_buffer));
+        } else {
+            read(sockfd, &buffer, req.tam_buffer);
+            printf("%s\0", buffer);
+            printf("\n");
+        }
 
-    read(sockfd, buffer, req.tam_buffer * sizeof(char));
-    printf("%s\0\n", buffer);
-    printf("\n");
+    }
+    // Requisicao req;
+    // req.escrever =  0;
+    // req.posicao = 8;
+    // req.tam_buffer = 20;
+    // // char buffer[] = "Ola Mundo Ola Mundo";
+    // char buffer[20];
+    //
+    //
+    //
+    //
+    // write(sockfd, &req, sizeof(Requisicao));
+    // // write(sockfd, &buffer, sizeof(char) * req.tam_buffer);
+    //
+    //
+    // read(sockfd, buffer, req.tam_buffer * sizeof(char));
+    // printf("%s\0\n", buffer);
+    // printf("\n");
 
     // int resposta, entrada;
     //
