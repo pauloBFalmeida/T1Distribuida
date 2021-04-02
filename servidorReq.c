@@ -51,7 +51,7 @@ void *atenderCliente(void *arg) {
     }
 
     int serverInit = req.posicao / TAM_MEM;
-    int serverFinal = (req.posicao + req.tam_buffer) / TAM_MEM;
+    int serverFinal = (req.posicao + req.tam_buffer - 1) / TAM_MEM;
     int posBuffer = 0;
     printf("ServerInit: %d, serverFinal: %d \n", serverInit, serverFinal);
 

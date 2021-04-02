@@ -13,6 +13,7 @@ char memoria[TAM_MEM];
 
 pthread_mutex_t mutexes[N_CHUNKS+1];
 
+
 int init() {
     for (int i=0; i<TAM_MEM; i++)   // loop nos caracteres de A-Z
         memoria[i] = 65 + (i % 25);
@@ -23,12 +24,6 @@ int init() {
 //     pthread_create(&threads[i], NULL, compute_thread, &args[i]);
 //
 }
-
-// pthread_join(threads[i], (void**)&results[i]);
-// pthread_create(&threads[i], NULL, compute_thread, &args[i]);
-
-// pthread_mutex_t mutex;
-// pthread_mutex_lock(&mutex);	// dou lock
 
 void *atenderCliente(void *arg) {
     int client_sockfd = *(int *)arg;
@@ -97,6 +92,7 @@ void *atenderCliente(void *arg) {
 
 int main() {
     init();
+
     int server_sockfd;
     int client_sockfd;
     unsigned int server_len, client_len;
