@@ -24,14 +24,7 @@ void init() {
         addressServidoresMem[i].sin_addr.s_addr = inet_addr("127.0.0.1");
         scanf("%hd", &addressServidoresMem[i].sin_port);
         socketsServidoresMem[i] = sockfd;
-
-        // result = connect(socketsServidoresMem[i], (struct sockaddr *)&sizeof(addressServidoresMem[i]), len);
-        // if(result == -1) {
-        //     perror("error ao conectar ");
-        //     exit(1);
-        // }
     }
-
 }
 
 void *atenderCliente(void *arg) {
