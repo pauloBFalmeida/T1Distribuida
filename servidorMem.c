@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include "servidor.h"
 #include <string.h>
+#include <sys/un.h>
 
 char memoria[TAM_MEM];
 
@@ -27,6 +28,20 @@ int init() {
 }
 
 void *atenderLogger() {
+    int server_sockfd;
+    int client_sockfd;
+
+    unsigned int server_len, client_len;
+    struct sockaddr_un server_address;
+    struct sockaddr_un client_address;
+
+    server_sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+    server_address.sun_family = AF_UNIX;
+    strcpy(server_address.sun_path, "server_socket");
+    server_len = sizeof(server_address);
+    bind(server_sockfd, (struct sockaddr *)&server_address, server_len);
+    listen(server_sockfd, 255);
+
     return 0;
 }
 

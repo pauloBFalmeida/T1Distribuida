@@ -119,6 +119,9 @@ void *atenderCliente(void *arg) {
 int main() {
     init();
     int server_sockfd;
+    int client_sockfd[250];
+    pthread_t client_thread[250];
+    int atual = 0;
     // int client_sockfd;
     unsigned int server_len, client_len;
     struct sockaddr_in server_address;
@@ -134,10 +137,11 @@ int main() {
     while(1) {
         printf("server waiting\n");
         client_len = sizeof(client_address);
-        int client_sockfd = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
+        client_sockfd[atual%250] = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
 
-        pthread_t thread;
-        pthread_create(&thread, NULL, atenderCliente, (void*)&client_sockfd);
+        pthread_create(&client_thread[atual%250], NULL, atenderCliente, (void*)&client_sockfd[atual%250]);
+
+        atual++;
     }
     close(server_sockfd);
     exit(0);
