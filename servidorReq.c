@@ -9,10 +9,12 @@
 #include "servidor.h"
 #include <string.h>
 #include <errno.h>
+#include <semaphore.h>
 
 
 int socketsServidoresMem[N_SERV_MEM];
 struct sockaddr_in addressServidoresMem[N_SERV_MEM];
+sem_t semaforosClientes;
 
 void init() {
     for (int i=0; i<N_SERV_MEM; i++) {
@@ -25,6 +27,41 @@ void init() {
         scanf("%hd", &addressServidoresMem[i].sin_port);
         socketsServidoresMem[i] = sockfd;
     }
+}
+
+void *atenderLogger(void *arg) {
+    int sockfd;
+    int len;
+    struct sockaddr_in address;
+    int result;
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    scanf("%hd", &address.sin_port);
+    len = sizeof(address);
+
+    char recebido[TAM_MEM];
+    char contador = 'A';
+    FILE *file;
+    while (1) {
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);   // tcp
+        result = connect(sockfd, (struct sockaddr *)&address, len);
+        if(result == -1) {
+            printf("r: %d erro %d \n", result, errno);
+            perror("error ao conectar ao logger");
+            exit(1);
+        }
+
+        read(sockfd, &recebido, TAM_MEM * sizeof(char));
+        close(sockfd);
+
+        const char filename[] = {'l','o','g','D','a','d','o',contador,'.','t','x','t','\0'};
+        contador++;
+
+        file = fopen(filename, "w+");
+        fputs(recebido, file);
+        fclose(file);
+    }
+
 }
 
 void *atenderCliente(void *arg) {
@@ -107,13 +144,19 @@ void *atenderCliente(void *arg) {
     }
 
     close(client_sockfd);
+    sem_post(&semaforosClientes);
 }
 
 int main() {
     init();
+
+    pthread_t threadLogger;
+    pthread_create(&threadLogger, NULL, atenderLogger, NULL);
+
     int server_sockfd;
-    int client_sockfd[250];
-    pthread_t client_thread[250];
+    int client_sockfd[N_CLIENTES];
+    pthread_t client_thread[N_CLIENTES];
+    sem_init(&semaforosClientes, 0, N_CLIENTES);
     int atual = 0;
     // int client_sockfd;
     unsigned int server_len, client_len;
@@ -125,17 +168,21 @@ int main() {
     server_address.sin_port = 9734;
     server_len = sizeof(server_address);
     bind(server_sockfd, (struct sockaddr *)&server_address, server_len);
-    listen(server_sockfd, 255);
+    listen(server_sockfd, N_CLIENTES);
 
     while(1) {
+        sem_wait(&semaforosClientes);
         printf("server waiting\n");
         client_len = sizeof(client_address);
-        client_sockfd[atual%250] = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
+        client_sockfd[atual] = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
 
-        pthread_create(&client_thread[atual%250], NULL, atenderCliente, (void*)&client_sockfd[atual%250]);
+        pthread_create(&client_thread[atual], NULL, atenderCliente, (void*)&client_sockfd[atual]);
 
-        atual++;
+        atual = (atual + 1) % N_CLIENTES;
     }
     close(server_sockfd);
+
+    sem_destroy(&semaforosClientes);
+
     exit(0);
 }

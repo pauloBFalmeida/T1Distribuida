@@ -1,3 +1,4 @@
+#define N_CLIENTES 250
 #define N_SERV_MEM 1
 #define SERVIDOR_REQ_N_THREADS 10
 
@@ -6,6 +7,8 @@
 
 #define N_CHUNKS 5  // TAM_MEM tem q ser divisivel pelo N_CHUNKS
 #define SERVIDOR_MEM_N_THREADS 30
+
+#define FILENAME "logDados"
 
 typedef struct {
     char escrever;

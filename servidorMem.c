@@ -9,6 +9,8 @@
 #include "servidor.h"
 #include <string.h>
 #include <sys/un.h>
+#include <semaphore.h>
+
 
 char memoria[TAM_MEM];
 
@@ -17,6 +19,8 @@ pthread_mutex_t mutexes[N_CHUNKS];
 char chunks_modificados[N_CHUNKS];
 
 pthread_t threadLogger;
+
+sem_t semaforosClientes;
 
 int init() {
     for (int i=0; i<TAM_MEM; i++)   // loop nos caracteres de A-Z
@@ -145,6 +149,9 @@ void *atenderCliente(void *arg) {
     }
 
     // write(client_sockfd, &resposta, sizeof(int));
+    
+    close(client_sockfd);
+    sem_post(&semaforosClientes);
 }
 
 int main() {
@@ -153,8 +160,9 @@ int main() {
 
     int server_sockfd;
     int atual = 0;
-    int client_sockfd[250];
-    pthread_t client_thread[250];
+    int client_sockfd[N_CLIENTES];
+    pthread_t client_thread[N_CLIENTES];
+    sem_init(&semaforosClientes, 0, N_CLIENTES);
 
     unsigned int server_len, client_len;
     struct sockaddr_in server_address;
@@ -165,19 +173,26 @@ int main() {
     scanf("%hd", &server_address.sin_port);
     server_len = sizeof(server_address);
     bind(server_sockfd, (struct sockaddr *)&server_address, server_len);
-    listen(server_sockfd, 255);
+    listen(server_sockfd, N_CLIENTES);
 
     while(1) {
+        sem_wait(&semaforosClientes);
         printf("server waiting\n");
         client_len = sizeof(client_address);
-        client_sockfd[atual%250] = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
+        client_sockfd[atual] = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
 
-        pthread_create(&client_thread[atual%250], NULL, atenderCliente, (void*)&client_sockfd[atual%250]);
+        pthread_create(&client_thread[atual], NULL, atenderCliente, (void*)&client_sockfd[atual]);
 
-        atual++;
+        atual = (atual + 1) % N_CLIENTES;
     }
 
     // fecha o servidor
     close(server_sockfd);
+
+    sem_destroy(&semaforosClientes);
+    for (int i=0; i<N_CHUNKS; i++) {
+        pthread_mutex_destroy(&mutexes[i]);
+    }
+
     exit(0);
 }
