@@ -22,17 +22,12 @@ pthread_t client_thread[N_CLIENTES];
 sem_t semaforosClientes;
 
 int init() {
-    for (int i=0; i<TAM_MEM; i++)   // loop nos caracteres de A-Z
+    for (int i=0; i<TAM_MEM; i++)   // inicia memoria com '*'
         memoria[i] = 42;
-        // memoria[i] = 65 + (i % 25);
     for (int i=0; i<N_CHUNKS; i++) {
         pthread_mutex_init(&mutexes[i], NULL);
         chunks_modificados[i] = 1;
     }
-
-//     pthread_t threads[N_THREADS];
-//     pthread_create(&threads[i], NULL, compute_thread, &args[i]);
-//
 }
 
 void *atenderLogger() {
@@ -52,16 +47,17 @@ void *atenderLogger() {
     server_len = sizeof(server_address);
     bind(server_sockfd, (struct sockaddr *)&server_address, server_len);
     listen(server_sockfd, 250);
-
     unsigned int len = sizeof(client_address);
+
+    chunkLogger_t chunkLogger;
     while(1) {
-        printf("server waiting logger\n");
+        printf("serverMem esperando logger\n");
         client_sockfd = accept(server_sockfd, (struct sockaddr *)&client_address, &len);
-        printf("aceito client_sockfd: %d\n", client_sockfd);
-        printf("errno: %d\n", errno);
+        if (client_sockfd < 0) {
+            printf("errno: %d\n", errno);
+        }
 
-
-        chunkLogger_t chunkLogger;
+        // copiando os chunks de memoria que foram alterados pro logger
         for (int i=0; i<N_CHUNKS; i++) {
             char mudou = 0;
             chunkLogger.n_chunk = i;
@@ -81,27 +77,25 @@ void *atenderLogger() {
                 write(client_sockfd, &chunkLogger, sizeof(chunkLogger_t));
             }
         }
-        //
+        // envia um chunkLogger com -1 pra finalizar
         chunkLogger.n_chunk = -1;
         write(client_sockfd, &chunkLogger, sizeof(chunkLogger_t));
-
+        // fecha o socket
         close(client_sockfd);
-        printf("cliente fechado\n");
     }
-
+    //
     close(server_sockfd);
 }
 
 
 void *atenderCliente(void *arg) {
+    // recebe o socket do cliente
     int client_sockfd = *(int *)arg;
-
-    printf("atendendo %d \n", client_sockfd);
-
+    // cria a requisicao
     requisicao_t req;
     read(client_sockfd, &req, sizeof(requisicao_t));
-    // escrita
     char buffer[req.tam_buffer];
+    // caso escrita, ler o buffer de dados
     if (req.escrever == 1) {
         read(client_sockfd, &buffer, (req.tam_buffer * sizeof(char)));
     }
@@ -109,13 +103,14 @@ void *atenderCliente(void *arg) {
     printf("esc: %c, pos: %d, tam: %d \n", req.escrever +48, req.posicao, req.tam_buffer);
     printf("buffer: %s\n", buffer);
 
+    // calcula os mutex que estao na requisicao
     int mutexInit = req.posicao / (TAM_MEM / N_CHUNKS);
     int mutexFinal = (req.posicao + req.tam_buffer -1) / (TAM_MEM / N_CHUNKS);
+    // printf("mutexInit: %d mutexFinal: %d\n", mutexInit, mutexFinal);
 
-    printf("mutexInit: %d mutexFinal: %d\n", mutexInit, mutexFinal);
     // contador de posicoes do buffer
     int cont = 0;
-
+    // percorre todos os mutex
     for (int i=mutexInit; i<=mutexFinal; i++) {
         int tam = min((i+1)*(TAM_MEM / N_CHUNKS),       // inicio do prox chunk
                         req.posicao + req.tam_buffer);  // posicao final do buffer na memoria
@@ -123,7 +118,8 @@ void *atenderCliente(void *arg) {
                         req.posicao);                   // posicao inicial do buffer na memoria
         printf("tam: %d ini: %d mut: %d\n", tam, ini, i);
         pthread_mutex_lock(&mutexes[i]);
-        printf("dentro do mutex\n");
+        printf("dentro do mutex %d\n", i);
+        // escreve o conteudo do buffer na posicao
         if (req.escrever == 1) {
             chunks_modificados[i] = 1;
             for (int j=ini; j<tam; j++) {
@@ -131,7 +127,8 @@ void *atenderCliente(void *arg) {
                 printf("%c", buffer[cont]);
                 cont++;
             }
-        } else {    // read
+        // leitura
+        } else {
             for (int j=ini; j<tam; j++) {
                 buffer[cont] = memoria[j];
                 printf("%c", buffer[cont]);
@@ -141,22 +138,21 @@ void *atenderCliente(void *arg) {
         printf("\n");
         pthread_mutex_unlock(&mutexes[i]);
     }
-
+    // print conteudo da memoria
     printf("mem: ");
     for (int i=0; i<TAM_MEM; i++)
         printf("%c", memoria[i]);
     printf("\n");
-
+    // se for escrita, escrevemos o conteudo no socket
     if (req.escrever != 1) {
+        write(client_sockfd, &buffer, (req.tam_buffer * sizeof(char)) );
+        // print do buffer
         printf("bufferc '");
         for (int i=0; i<req.tam_buffer; i++)
             printf("%c", buffer[i]);
         printf("'\n");
-        write(client_sockfd, &buffer, (req.tam_buffer * sizeof(char)) );
     }
-
-    // write(client_sockfd, &resposta, sizeof(int));
-
+    // fecha o socket e libera um semaforo pra outra thread de cliente
     close(client_sockfd);
     sem_post(&semaforosClientes);
 }
@@ -165,17 +161,18 @@ int main() {
     init();
     pthread_create(&threadLogger, NULL, atenderLogger, NULL);
 
+    //
     int server_sockfd;
-    int atual = 0;
     int client_sockfd[N_CLIENTES];
     sem_init(&semaforosClientes, 0, N_CLIENTES);
-
+    int atual = 0;
+    // criacao do socket
     unsigned int server_len, client_len;
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
     server_sockfd = socket(AF_INET, SOCK_STREAM, 0);
     server_address.sin_family = AF_INET;
-
+    // le o arquivo de config
     FILE *configFile;
     char addr[32+1];
     configFile = fopen("configServidorMem.txt", "r");
@@ -184,7 +181,7 @@ int main() {
     fscanf(configFile,"%hd", &server_address.sin_port);
     fclose(configFile);
     printf("addr: %s port: %hd\n", addr, server_address.sin_port);
-
+    //
     server_len = sizeof(server_address);
     bind(server_sockfd, (struct sockaddr *)&server_address, server_len);
     listen(server_sockfd, N_CLIENTES);
@@ -192,11 +189,11 @@ int main() {
 
     while(1) {
         sem_wait(&semaforosClientes);
-        printf("server waiting\n");
+        printf("servidorMem esperando cliente\n");
+
+        // cria uma thread pro cliente
         client_sockfd[atual] = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
-
         pthread_create(&client_thread[atual], NULL, atenderCliente, (void*)&client_sockfd[atual]);
-
         atual = (atual + 1) % N_CLIENTES;
     }
 

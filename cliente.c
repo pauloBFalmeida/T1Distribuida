@@ -39,15 +39,14 @@ requisicao_t req;
 
 
 int main() {
-    int len;
     struct sockaddr_in address;
+    int len = sizeof(address);
     int result;
 
-
+    // ler arquivo de config
     FILE *configFile;
     configFile = fopen("configCliente.txt", "r");
     char addr[32+1];
-    // le o address desse server
     address.sin_family = AF_INET;
     fscanf(configFile,"%s", addr);
     address.sin_addr.s_addr = inet_addr(addr);
@@ -55,60 +54,41 @@ int main() {
     printf("addr: %s port: %hd\n", addr, address.sin_port);
     fclose(configFile);
 
-    len = sizeof(address);
-
-
+    int escrita;
     while (1) {
         sockfd = socket(AF_INET, SOCK_STREAM, 0);   // tcp
         result = connect(sockfd, (struct sockaddr *)&address, len);
         if(result == -1) {
-            printf("r: %d erro %d \n", result, errno);
-            perror("error ao conectar ");
+            perror("error ao conectar");
             exit(1);
         }
 
-        int num;
         printf("Voce quer escrever: (1/0) ");
-        scanf("%d", &num);
-        req.escrever = num;
+        scanf("%d", &escrita);
+        req.escrever = escrita;
         printf("Posicao: ");
         scanf("%d", &req.posicao);
         printf("Tamanho do buffer seguido da Mensagem: ");
         scanf("%d ", &req.tam_buffer);
-        if (req.escrever == 1) {
+        if (escrita == 1) {
             fgets(buffer, MAX_ENTRY_SIZE, stdin);
             // scanf("%100[^\n]", buffer);
             printf("\n");
         }
 
+        // escreve a requisicao no socket
         write(sockfd, &req, sizeof(requisicao_t));
-
-        if (req.escrever == 1) {
+        // se for escrita, escreve o buffer
+        if (escrita == 1) {
             write(sockfd, &buffer, req.tam_buffer * sizeof(char));
+        // se for leitura, limpa o buffer e escreve a resposta no buffer
         } else {
             memset(buffer, '\0', sizeof(buffer));
             read(sockfd, &buffer, req.tam_buffer);
             printf("%s\n", buffer);
         }
 
-
-        // printf("Voce quer escrever: (1/0) ");
-        // scanf("%d", &escrita);
-        //
-        // printf("Posicao: ");
-        // scanf("%d", &posicao);
-        // printf("Tamanho do buffer: ");
-        // scanf("%d", &tam_buffer);
-        // if (escrita == 1) {
-        //     printf("Mensagem: ");
-        //     scanf("%s", bufferChar);
-        //     escrever(posicao, bufferChar, tam_buffer);
-        // } else {
-        //     ler(posicao, tam_buffer);
-        // }
-
         close(sockfd);
     }
-
     exit(0);
 }
