@@ -6,10 +6,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include "servidor.h"
 #include <string.h>
 #include <sys/un.h>
 #include <errno.h>
+#include "definicoes.h"
 
 char memoriaLogger[TAM_MEM];
 
@@ -23,7 +23,17 @@ int main() {
     server_sockfd = socket(AF_INET, SOCK_STREAM, 0);
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-    scanf("%hd", &server_address.sin_port);
+
+    FILE *configFile;
+    char addr[32+1];
+    configFile = fopen("configLogger.txt", "r");
+    fscanf(configFile,"%s", addr);
+    server_address.sin_addr.s_addr = inet_addr(addr);
+    fscanf(configFile,"%hd", &server_address.sin_port);
+    fclose(configFile);
+    printf("addr: %s port: %hd\n", addr, server_address.sin_port);
+
+    // scanf("%hd", &server_address.sin_port);
     server_len = sizeof(server_address);
     bind(server_sockfd, (struct sockaddr *)&server_address, server_len);
     listen(server_sockfd, 250);

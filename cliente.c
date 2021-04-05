@@ -6,9 +6,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include "servidor.h"
 #include <string.h>
 #include <errno.h>
+#include "definicoes.h"
 
 int sockfd;
 char buffer[MAX_ENTRY_SIZE+1];
@@ -42,9 +42,19 @@ int main() {
     int len;
     struct sockaddr_in address;
     int result;
+
+
+    FILE *configFile;
+    configFile = fopen("configCliente.txt", "r");
+    char addr[32+1];
+    // le o address desse server
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr("127.0.0.1");
-    address.sin_port = 9734;
+    fscanf(configFile,"%s", addr);
+    address.sin_addr.s_addr = inet_addr(addr);
+    fscanf(configFile,"%hd", &address.sin_port);
+    printf("addr: %s port: %hd\n", addr, address.sin_port);
+    fclose(configFile);
+
     len = sizeof(address);
 
 

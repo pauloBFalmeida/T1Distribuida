@@ -6,27 +6,25 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include "servidor.h"
 #include <string.h>
 #include <sys/un.h>
 #include <semaphore.h>
 #include <errno.h>
-
-
+#include "definicoes.h"
 
 char memoria[TAM_MEM];
-
 pthread_mutex_t mutexes[N_CHUNKS];
 
+pthread_t threadLogger;
 char chunks_modificados[N_CHUNKS];
 
-pthread_t threadLogger;
-
+pthread_t client_thread[N_CLIENTES];
 sem_t semaforosClientes;
 
 int init() {
     for (int i=0; i<TAM_MEM; i++)   // loop nos caracteres de A-Z
-        memoria[i] = 65 + (i % 25);
+        memoria[i] = 42;
+        // memoria[i] = 65 + (i % 25);
     for (int i=0; i<N_CHUNKS; i++) {
         pthread_mutex_init(&mutexes[i], NULL);
         chunks_modificados[i] = 1;
@@ -102,20 +100,19 @@ void *atenderCliente(void *arg) {
 
     requisicao_t req;
     read(client_sockfd, &req, sizeof(requisicao_t));
-    printf("Primeiro read recebido\n");
     // escrita
     char buffer[req.tam_buffer];
     if (req.escrever == 1) {
         read(client_sockfd, &buffer, (req.tam_buffer * sizeof(char)));
-        printf("2 read recebido\n");
     }
 
-    printf("esc: %s, pos: %d, tam: %d \n", &req.escrever, req.posicao, req.tam_buffer);
+    printf("esc: %c, pos: %d, tam: %d \n", req.escrever +48, req.posicao, req.tam_buffer);
     printf("buffer: %s\n", buffer);
 
-    int mutexInit = req.posicao / N_CHUNKS;
-    int mutexFinal = (req.posicao + req.tam_buffer) / N_CHUNKS;
+    int mutexInit = req.posicao / (TAM_MEM / N_CHUNKS);
+    int mutexFinal = (req.posicao + req.tam_buffer -1) / (TAM_MEM / N_CHUNKS);
 
+    printf("mutexInit: %d mutexFinal: %d\n", mutexInit, mutexFinal);
     // contador de posicoes do buffer
     int cont = 0;
 
@@ -171,7 +168,6 @@ int main() {
     int server_sockfd;
     int atual = 0;
     int client_sockfd[N_CLIENTES];
-    pthread_t client_thread[N_CLIENTES];
     sem_init(&semaforosClientes, 0, N_CLIENTES);
 
     unsigned int server_len, client_len;
@@ -179,16 +175,24 @@ int main() {
     struct sockaddr_in client_address;
     server_sockfd = socket(AF_INET, SOCK_STREAM, 0);
     server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-    scanf("%hd", &server_address.sin_port);
+
+    FILE *configFile;
+    char addr[32+1];
+    configFile = fopen("configServidorMem.txt", "r");
+    fscanf(configFile,"%s", addr);
+    server_address.sin_addr.s_addr = inet_addr(addr);
+    fscanf(configFile,"%hd", &server_address.sin_port);
+    fclose(configFile);
+    printf("addr: %s port: %hd\n", addr, server_address.sin_port);
+
     server_len = sizeof(server_address);
     bind(server_sockfd, (struct sockaddr *)&server_address, server_len);
     listen(server_sockfd, N_CLIENTES);
+    client_len = sizeof(client_address);
 
     while(1) {
         sem_wait(&semaforosClientes);
         printf("server waiting\n");
-        client_len = sizeof(client_address);
         client_sockfd[atual] = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
 
         pthread_create(&client_thread[atual], NULL, atenderCliente, (void*)&client_sockfd[atual]);
