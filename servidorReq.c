@@ -11,34 +11,39 @@
 #include <errno.h>
 #include <semaphore.h>
 
+// n uso o sockets
 int socketsServidoresMem[N_SERV_MEM];
+int socketsLoggers[N_SERV_MEM];
 struct sockaddr_in addressServidoresMem[N_SERV_MEM];
+struct sockaddr_in addressLoggers[N_SERV_MEM];
 sem_t semaforosClientes;
 
 void init() {
+    printf("Entre com os address dos %d servidores de Mem\n", N_SERV_MEM);
     for (int i=0; i<N_SERV_MEM; i++) {
-        int sockfd;
-        int len;
-        int result;
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);   // tcp
+        socketsServidoresMem[i] = socket(AF_INET, SOCK_STREAM, 0);   // tcp
         addressServidoresMem[i].sin_family = AF_INET;
         addressServidoresMem[i].sin_addr.s_addr = inet_addr("127.0.0.1");
         scanf("%hd", &addressServidoresMem[i].sin_port);
-        socketsServidoresMem[i] = sockfd;
+    }
+    printf("Entre com os address dos %d Loggers\n", N_SERV_MEM);
+    for (int i=0; i<N_SERV_MEM; i++) {
+        // socketsLoggers[i] = socket(AF_INET, SOCK_STREAM, 0);   // tcp
+        addressLoggers[i].sin_family = AF_INET;
+        addressLoggers[i].sin_addr.s_addr = inet_addr("127.0.0.1");
+        scanf("%hd", &addressLoggers[i].sin_port);
     }
 }
 
 void *atenderLogger(void *arg) {
     int sockfd;
     int len;
-    struct sockaddr_in address;
     int result;
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr("127.0.0.1");
-    scanf("%hd", &address.sin_port);
-    len = sizeof(address);
+    len = sizeof(addressLoggers[0]);
 
-    char recebido[TAM_MEM];
+    chunkLogger_t chunkLogger;
+    char recebido[(TAM_MEM / N_CHUNKS)+1];
+    recebido[TAM_MEM / N_CHUNKS] = '\0';
     char contador = 'A';
     FILE *file;
     while (1) {
@@ -47,20 +52,28 @@ void *atenderLogger(void *arg) {
         file = fopen(filename, "w+");
 
         // for todos os servers
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);   // tcp
-        result = connect(sockfd, (struct sockaddr *)&address, len);
-        if(result == -1) {
-            printf("r: %d erro %d \n", result, errno);
-            perror("error ao conectar ao logger");
-            exit(1);
+        for (int i=0; i<N_SERV_MEM; i++) {
+            sockfd = socket(AF_INET, SOCK_STREAM, 0);   // tcp
+            result = connect(sockfd, (struct sockaddr *)&addressLoggers[i], len);
+            if(result == -1) {
+                printf("r: %d erro %d \n", result, errno);
+                perror("error ao conectar ao logger");
+                exit(1);
+            }
+
+            // dont touch, fragile
+            printf("recebido: ");
+            for (int i=0; i<N_CHUNKS; i++) {
+                read(sockfd, &chunkLogger, sizeof(chunkLogger_t));
+                printf("%s", chunkLogger.dados);
+                strncpy(recebido, chunkLogger.dados, (TAM_MEM / N_CHUNKS));
+                fputs(recebido, file);
+            }
+            printf("\n");
+            close(sockfd);
         }
 
-        read(sockfd, &recebido, TAM_MEM * sizeof(char));
-        close(sockfd);
-
-
-        fputs(recebido, file);
-
+        //
         fputs("\n", file);
         fclose(file);
 
@@ -75,8 +88,8 @@ void *atenderCliente(void *arg) {
     int client_sockfd = *(int *)arg;
 
     // escreve(posicao, &buffer, tamBuffer)
-    Requisicao req;
-    read(client_sockfd, &req, sizeof(Requisicao));
+    requisicao_t req;
+    read(client_sockfd, &req, sizeof(requisicao_t));
     // escrita
     char buffer[req.tam_buffer];
     if (req.escrever == 1) {
@@ -102,14 +115,14 @@ void *atenderCliente(void *arg) {
             printf("r2: %d erro %d \n", r2, errno);
         }
 
-        Requisicao req_i;
+        requisicao_t req_i;
         req_i.escrever = req.escrever;
         req_i.posicao = max(req.posicao - i*TAM_MEM, 0);
         req_i.tam_buffer = min(min(TAM_MEM, TAM_MEM - req_i.posicao), req.tam_buffer);
         req.tam_buffer -= req_i.tam_buffer;
         // printf("tam_buffer: %d\n", req.tam_buffer);
         printf("Escrever no socket\n");
-        int r = write(sockfd, &req_i, sizeof(Requisicao));
+        int r = write(sockfd, &req_i, sizeof(requisicao_t));
         if (r < 0) {
             printf("r: %d erro %d \n", r, errno);
         }

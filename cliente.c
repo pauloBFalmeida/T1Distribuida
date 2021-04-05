@@ -10,8 +10,35 @@
 #include <string.h>
 #include <errno.h>
 
+int sockfd;
+char buffer[MAX_ENTRY_SIZE+1];
+// int escrita, posicao, tam_buffer;
+// char bufferChar[100];
+requisicao_t req;
+//
+//
+// void escrever(int posicao, char* buffer, int tam_buffer) {
+//     req.escrever = 1;
+//     req.posicao = posicao;
+//     req.tam_buffer = tam_buffer;
+//     write(sockfd, &req, sizeof(requisicao_t));
+//     write(sockfd, buffer, tam_buffer * sizeof(char));
+// }
+//
+// void ler(int posicao, int tam_buffer) {
+//     req.escrever = 0;
+//     req.posicao = posicao;
+//     req.tam_buffer = tam_buffer;
+//     write(sockfd, &req, sizeof(requisicao_t));
+//     // le
+//     memset(bufferChar, '\0', sizeof(bufferChar));
+//     read(sockfd, &bufferChar, tam_buffer);
+//     printf("%s%c\n", bufferChar, '\0');
+// }
+
+
+
 int main() {
-    int sockfd;
     int len;
     struct sockaddr_in address;
     int result;
@@ -20,9 +47,7 @@ int main() {
     address.sin_port = 9734;
     len = sizeof(address);
 
-    Requisicao req;
-    int num;
-    char buffer[100];
+
     while (1) {
         sockfd = socket(AF_INET, SOCK_STREAM, 0);   // tcp
         result = connect(sockfd, (struct sockaddr *)&address, len);
@@ -32,30 +57,48 @@ int main() {
             exit(1);
         }
 
+        int num;
         printf("Voce quer escrever: (1/0) ");
         scanf("%d", &num);
         req.escrever = num;
         printf("Posicao: ");
         scanf("%d", &req.posicao);
-        printf("Tamanho do buffer: ");
-        scanf("%d", &req.tam_buffer);
+        printf("Tamanho do buffer seguido da Mensagem: ");
+        scanf("%d ", &req.tam_buffer);
         if (req.escrever == 1) {
-            printf("Mensagem: ");
-            scanf("%s", buffer);
+            fgets(buffer, MAX_ENTRY_SIZE, stdin);
+            // scanf("%100[^\n]", buffer);
+            printf("\n");
         }
 
-        write(sockfd, &req, sizeof(Requisicao));
+        write(sockfd, &req, sizeof(requisicao_t));
 
         if (req.escrever == 1) {
             write(sockfd, &buffer, req.tam_buffer * sizeof(char));
         } else {
             memset(buffer, '\0', sizeof(buffer));
             read(sockfd, &buffer, req.tam_buffer);
-            printf("%s%c\n", buffer, '\0');
+            printf("%s\n", buffer);
         }
+
+
+        // printf("Voce quer escrever: (1/0) ");
+        // scanf("%d", &escrita);
+        //
+        // printf("Posicao: ");
+        // scanf("%d", &posicao);
+        // printf("Tamanho do buffer: ");
+        // scanf("%d", &tam_buffer);
+        // if (escrita == 1) {
+        //     printf("Mensagem: ");
+        //     scanf("%s", bufferChar);
+        //     escrever(posicao, bufferChar, tam_buffer);
+        // } else {
+        //     ler(posicao, tam_buffer);
+        // }
 
         close(sockfd);
     }
-    
+
     exit(0);
 }

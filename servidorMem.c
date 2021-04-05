@@ -45,9 +45,12 @@ void *atenderLogger() {
     struct sockaddr_un server_address;
     struct sockaddr_un client_address;
 
+    // deleta socket antigo de outra execucao
+    remove("local_socket");
+
     server_sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
     server_address.sun_family = AF_UNIX;
-    strcpy(server_address.sun_path, "server_socket");
+    strcpy(server_address.sun_path, "local_socket");
     server_len = sizeof(server_address);
     bind(server_sockfd, (struct sockaddr *)&server_address, server_len);
     listen(server_sockfd, 250);
@@ -60,7 +63,7 @@ void *atenderLogger() {
         printf("errno: %d\n", errno);
 
 
-        ChunkLogger chunkLogger;
+        chunkLogger_t chunkLogger;
         for (int i=0; i<N_CHUNKS; i++) {
             char mudou = 0;
             chunkLogger.n_chunk = i;
@@ -77,12 +80,12 @@ void *atenderLogger() {
             pthread_mutex_unlock(&mutexes[i]);
 
             if (mudou) {
-                write(client_sockfd, &chunkLogger, sizeof(ChunkLogger));
+                write(client_sockfd, &chunkLogger, sizeof(chunkLogger_t));
             }
         }
         //
         chunkLogger.n_chunk = -1;
-        write(client_sockfd, &chunkLogger, sizeof(ChunkLogger));
+        write(client_sockfd, &chunkLogger, sizeof(chunkLogger_t));
 
         close(client_sockfd);
         printf("cliente fechado\n");
@@ -97,8 +100,8 @@ void *atenderCliente(void *arg) {
 
     printf("atendendo %d \n", client_sockfd);
 
-    Requisicao req;
-    read(client_sockfd, &req, sizeof(Requisicao));
+    requisicao_t req;
+    read(client_sockfd, &req, sizeof(requisicao_t));
     printf("Primeiro read recebido\n");
     // escrita
     char buffer[req.tam_buffer];

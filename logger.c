@@ -33,7 +33,7 @@ int main() {
     struct sockaddr_un address;
     int result;
 
-    address.sun_family = AF_UNIX;   strcpy(address.sun_path, "server_socket");
+    address.sun_family = AF_UNIX;   strcpy(address.sun_path, "local_socket");
 
     //
 
@@ -53,10 +53,10 @@ int main() {
         }
 
         // pegar todos os chunks
-        ChunkLogger chunkLogger;
+        chunkLogger_t chunkLogger;
         chunkLogger.n_chunk = 0;
         while(1) {
-            read(sockfd_local, &chunkLogger, sizeof(ChunkLogger));
+            read(sockfd_local, &chunkLogger, sizeof(chunkLogger_t));
             printf("%d: %s%c\n", chunkLogger.n_chunk, chunkLogger.dados, '\0');
             if (chunkLogger.n_chunk < 0) {
                 break;
@@ -71,7 +71,16 @@ int main() {
         close(sockfd_local);
 
         // enviar pro servidor
-        write(client_sockfd, &memoriaLogger, TAM_MEM * sizeof(char));
+        for (int i=0; i<N_CHUNKS; i++) {
+            chunkLogger.n_chunk = i;
+            int chunkStart = i * (TAM_MEM / N_CHUNKS);
+            for (int i= 0; i<(TAM_MEM / N_CHUNKS); i++) {
+                chunkLogger.dados[i] = memoriaLogger[chunkStart + i];
+            }
+            printf("envio: %s\n", chunkLogger.dados);
+            write(client_sockfd, &chunkLogger, sizeof(chunkLogger_t));
+
+        }
 
         close(client_sockfd);
     }
