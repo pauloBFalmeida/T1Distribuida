@@ -9,6 +9,7 @@
 #define SERVIDOR_MEM_N_THREADS 30
 
 #define FILENAME "logDados"
+#define SLEEP_N_SEGUNDOS 20
 
 typedef struct {
     char escrever;

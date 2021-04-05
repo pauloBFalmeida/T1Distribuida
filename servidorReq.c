@@ -11,7 +11,6 @@
 #include <errno.h>
 #include <semaphore.h>
 
-
 int socketsServidoresMem[N_SERV_MEM];
 struct sockaddr_in addressServidoresMem[N_SERV_MEM];
 sem_t semaforosClientes;
@@ -43,6 +42,11 @@ void *atenderLogger(void *arg) {
     char contador = 'A';
     FILE *file;
     while (1) {
+        const char filename[] = {'l','o','g','D','a','d','o',contador,'.','t','x','t','\0'};
+        contador++;
+        file = fopen(filename, "w+");
+
+        // for todos os servers
         sockfd = socket(AF_INET, SOCK_STREAM, 0);   // tcp
         result = connect(sockfd, (struct sockaddr *)&address, len);
         if(result == -1) {
@@ -54,12 +58,14 @@ void *atenderLogger(void *arg) {
         read(sockfd, &recebido, TAM_MEM * sizeof(char));
         close(sockfd);
 
-        const char filename[] = {'l','o','g','D','a','d','o',contador,'.','t','x','t','\0'};
-        contador++;
 
-        file = fopen(filename, "w+");
         fputs(recebido, file);
+
+        fputs("\n", file);
         fclose(file);
+
+        // espera SLEEP_N_SEGUNDOS
+        sleep(SLEEP_N_SEGUNDOS);
     }
 
 }

@@ -10,6 +10,8 @@
 #include <string.h>
 #include <sys/un.h>
 #include <semaphore.h>
+#include <errno.h>
+
 
 
 char memoria[TAM_MEM];
@@ -54,6 +56,10 @@ void *atenderLogger() {
     while(1) {
         printf("server waiting logger\n");
         client_sockfd = accept(server_sockfd, (struct sockaddr *)&client_address, &len);
+        printf("aceito client_sockfd: %d\n", client_sockfd);
+        printf("errno: %d\n", errno);
+
+
         ChunkLogger chunkLogger;
         for (int i=0; i<N_CHUNKS; i++) {
             char mudou = 0;
@@ -79,6 +85,7 @@ void *atenderLogger() {
         write(client_sockfd, &chunkLogger, sizeof(ChunkLogger));
 
         close(client_sockfd);
+        printf("cliente fechado\n");
     }
 
     close(server_sockfd);
@@ -104,7 +111,7 @@ void *atenderCliente(void *arg) {
     printf("buffer: %s\n", buffer);
 
     int mutexInit = req.posicao / N_CHUNKS;
-    int mutexFinal = (req.posicao + req.tam_buffer - 1) / N_CHUNKS;
+    int mutexFinal = (req.posicao + req.tam_buffer) / N_CHUNKS;
 
     // contador de posicoes do buffer
     int cont = 0;
@@ -149,7 +156,7 @@ void *atenderCliente(void *arg) {
     }
 
     // write(client_sockfd, &resposta, sizeof(int));
-    
+
     close(client_sockfd);
     sem_post(&semaforosClientes);
 }

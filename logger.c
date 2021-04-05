@@ -33,7 +33,6 @@ int main() {
     struct sockaddr_un address;
     int result;
 
-    sockfd_local = socket(AF_UNIX, SOCK_STREAM, 0);
     address.sun_family = AF_UNIX;   strcpy(address.sun_path, "server_socket");
 
     //
@@ -42,8 +41,10 @@ int main() {
         printf("server waiting serverReq\n");
         client_len = sizeof(client_address);
         client_sockfd = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
+        printf("aceito, client_sockfd: %d\n", client_sockfd);
 
         // local
+        sockfd_local = socket(AF_UNIX, SOCK_STREAM, 0);
         result = connect(sockfd_local, (struct sockaddr *)&address, sizeof(address));
         if(result == -1) {
             printf("errno: %d\n", errno);
