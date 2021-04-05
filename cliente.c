@@ -12,9 +12,9 @@
 
 int sockfd;
 char buffer[MAX_ENTRY_SIZE+1];
+requisicao_t req;
 // int escrita, posicao, tam_buffer;
 // char bufferChar[100];
-requisicao_t req;
 //
 //
 // void escrever(int posicao, char* buffer, int tam_buffer) {

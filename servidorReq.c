@@ -44,10 +44,25 @@ void *atenderLogger(void *arg) {
     chunkLogger_t chunkLogger;
     char recebido[(TAM_MEM / N_CHUNKS)+1];
     recebido[TAM_MEM / N_CHUNKS] = '\0';
-    char contador = 'A';
+    int contador = 1;
+    char scontador[5];
+    char filename[] = "logDados01234.txt";
     FILE *file;
     while (1) {
-        const char filename[] = {'l','o','g','D','a','d','o',contador,'.','t','x','t','\0'};
+        // int to char
+        int aux = contador;
+        for (int i=4; i>= 0; i--) {
+            filename[8 + i] = 48 + (aux % 10);
+            aux = aux / 10;
+        }
+
+        //
+        // strcat(filename, logDados);
+        // strcat(filename, scontador);
+        // strcat(filename, txt);
+        // char filename[] = {'l','o','g','D','a','d','o',scontador[0],
+        //         scontador[1], scontador[2], scontador[3], scontador[4],
+        //         '.','t','x','t','\0'};
         contador++;
         file = fopen(filename, "w+");
 
