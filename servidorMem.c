@@ -116,26 +116,26 @@ void *atenderCliente(void *arg) {
                         req.posicao + req.tam_buffer);  // posicao final do buffer na memoria
         int ini = max(i * (TAM_MEM / N_CHUNKS),         // inicio do chunk
                         req.posicao);                   // posicao inicial do buffer na memoria
-        printf("tam: %d ini: %d mut: %d\n", tam, ini, i);
+        // printf("tam: %d ini: %d mut: %d\n", tam, ini, i);
         pthread_mutex_lock(&mutexes[i]);
-        printf("dentro do mutex %d\n", i);
+        // printf("dentro do mutex %d\n", i);
         // escreve o conteudo do buffer na posicao
         if (req.escrever == 1) {
             chunks_modificados[i] = 1;
             for (int j=ini; j<tam; j++) {
                 memoria[j] = buffer[cont];
-                printf("%c", buffer[cont]);
+                // printf("%c", buffer[cont]);
                 cont++;
             }
         // leitura
         } else {
             for (int j=ini; j<tam; j++) {
                 buffer[cont] = memoria[j];
-                printf("%c", buffer[cont]);
+                // printf("%c", buffer[cont]);
                 cont++;
             }
         }
-        printf("\n");
+        // printf("\n");
         pthread_mutex_unlock(&mutexes[i]);
     }
     // print conteudo da memoria
@@ -146,11 +146,11 @@ void *atenderCliente(void *arg) {
     // se for escrita, escrevemos o conteudo no socket
     if (req.escrever != 1) {
         write(client_sockfd, &buffer, (req.tam_buffer * sizeof(char)) );
-        // print do buffer
-        printf("bufferc '");
-        for (int i=0; i<req.tam_buffer; i++)
-            printf("%c", buffer[i]);
-        printf("'\n");
+        // // print do buffer
+        // printf("bufferc '");
+        // for (int i=0; i<req.tam_buffer; i++)
+        //     printf("%c", buffer[i]);
+        // printf("'\n");
     }
     // fecha o socket e libera um semaforo pra outra thread de cliente
     close(client_sockfd);

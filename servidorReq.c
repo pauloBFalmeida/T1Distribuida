@@ -72,31 +72,30 @@ void *atenderLogger(void *arg) {
             sockfd_logger = socket(AF_INET, SOCK_STREAM, 0);   // tcp
             result_conexao = connect(sockfd_logger, (struct sockaddr *)&addressLoggers[i], len_address_logger);
             if(result_conexao == -1) {
-                printf("r: %d erro %d \n", result_conexao, errno);
                 perror("error ao conectar ao logger");
                 exit(1);
             }
 
             // conteudo recebido do logger em chunks
-            printf("recebido: ");
+            // printf("recebido: ");
             for (int i=0; i<N_CHUNKS; i++) {
                 read(sockfd_logger, &chunkLogger, sizeof(chunkLogger_t));
-                printf("%s", chunkLogger.dados);
+                // printf("%s", chunkLogger.dados);
                 strncpy(recebido, chunkLogger.dados, (TAM_MEM / N_CHUNKS));
                 fputs(recebido, file);
             }
-            printf("\n");
+            // printf("\n");
             // fecha o socket desse logger
             close(sockfd_logger);
         }
         // acrescenta uma linha no final do arquivo e fecha ele
         fputs("\n", file);
         fclose(file);
+        printf("Log salvo\n");
 
-        // espera SLEEP_N_SEGUNDOS para salvar o proximo log
-        sleep(SLEEP_N_SEGUNDOS);
+        // espera SLEEP_N_SEGUNDOS_REQ para salvar o proximo log
+        sleep(SLEEP_N_SEGUNDOS_REQ);
     }
-
 }
 
 void *atenderCliente(void *arg) {

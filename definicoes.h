@@ -9,7 +9,8 @@
 #define SERVIDOR_MEM_N_THREADS 30
 
 #define FILENAME "logDados"
-#define SLEEP_N_SEGUNDOS 20
+#define SLEEP_N_SEGUNDOS_REQ 20
+#define SLEEP_N_SEGUNDOS_LOGGER 5
 
 #define MAX_ENTRY_SIZE 200
 
