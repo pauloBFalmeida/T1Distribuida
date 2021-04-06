@@ -1,2 +1,2 @@
 # T1Distribuida
-Trabalho 1 de distribuida 
+ Trabalho 1 de distribuida 
